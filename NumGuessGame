@@ -1,0 +1,153 @@
+(() => {
+
+  // ===== SAVE ORIGINAL PAGE (for restore) =====
+  const original = document.documentElement.cloneNode(true);
+
+  function restoreSite() {
+    document.replaceChild(original, document.documentElement);
+  }
+
+  // ===== NUKE PAGE SAFELY =====
+  document.documentElement.replaceChildren();
+
+  const head = document.createElement("head");
+  const body = document.createElement("body");
+  document.documentElement.append(head, body);
+
+  // ===== STYLES =====
+  const style = document.createElement("style");
+  style.textContent = `
+    body {
+      margin:0;
+      background:#000;
+      color:#00ff41;
+      font-family:Consolas, monospace;
+      display:grid;
+      place-items:center;
+      height:100vh;
+    }
+    .box {
+      border:1px solid #00ff41;
+      padding:20px;
+      border-radius:12px;
+      width:420px;
+      background:#001400;
+      box-shadow:0 0 20px #00ff41;
+    }
+    input, button, select {
+      background:#000;
+      color:#00ff41;
+      border:1px solid #00ff41;
+      padding:8px;
+      margin:4px;
+      font-family:inherit;
+    }
+    button:hover { background:#003300; cursor:pointer; }
+    #log { margin-top:10px; min-height:60px; white-space:pre-wrap; }
+  `;
+  head.appendChild(style);
+
+  // ===== UI =====
+  const box = document.createElement("div");
+  box.className = "box";
+  body.appendChild(box);
+
+  const title = document.createElement("h2");
+  title.textContent = "Guess the Number";
+  box.appendChild(title);
+
+  const diff = document.createElement("select");
+  [10, 50, 100].forEach(n => {
+    const opt = document.createElement("option");
+    opt.value = n;
+    opt.textContent = `1–${n}`;
+    diff.appendChild(opt);
+  });
+  box.appendChild(diff);
+
+  box.appendChild(document.createElement("br"));
+
+  const input = document.createElement("input");
+  input.type = "number";
+  input.placeholder = "Enter guess";
+  box.appendChild(input);
+
+  const guessBtn = document.createElement("button");
+  guessBtn.textContent = "Guess";
+  box.appendChild(guessBtn);
+
+  const newBtn = document.createElement("button");
+  newBtn.textContent = "New Game";
+  box.appendChild(newBtn);
+
+  const giveUpBtn = document.createElement("button");
+  giveUpBtn.textContent = "Give Up";
+  box.appendChild(giveUpBtn);
+
+  const restoreBtn = document.createElement("button");
+  restoreBtn.textContent = "Restore Site";
+  box.appendChild(restoreBtn);
+
+  const log = document.createElement("div");
+  log.id = "log";
+  box.appendChild(log);
+
+  // ===== GAME LOGIC =====
+  let secret, max, attempts, prevDist, active;
+
+  function newGame() {
+    max = Number(diff.value);
+    secret = Math.floor(Math.random() * max) + 1;
+    attempts = 0;
+    prevDist = null;
+    active = true;
+    log.textContent = `New game! Guess 1–${max}`;
+    input.value = "";
+    input.focus();
+  }
+
+  function guess() {
+    if (!active) return;
+
+    const g = Number(input.value);
+    if (!g) return;
+
+    attempts++;
+
+    if (g === secret) {
+      log.textContent = `🎉 Correct in ${attempts} attempts!`;
+      active = false;
+      return;
+    }
+
+    const dist = Math.abs(secret - g);
+
+    let hint = g < secret ? "Too low." : "Too high.";
+    if (prevDist !== null) {
+      if (dist < prevDist) hint += " 🔥 Warmer";
+      else if (dist > prevDist) hint += " ❄️ Colder";
+    }
+
+    prevDist = dist;
+    log.textContent = hint;
+  }
+
+  guessBtn.onclick = guess;
+  newBtn.onclick = newGame;
+
+  giveUpBtn.onclick = () => {
+    if (active) {
+      log.textContent = `💀 You gave up. Number was ${secret}`;
+      active = false;
+    }
+  };
+
+  restoreBtn.onclick = restoreSite;
+
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") guess();
+  });
+
+  newGame();
+
+})();
